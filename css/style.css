@@ -1,0 +1,732 @@
+/* ─── css/style.css — Expense & Budget Visualizer ──────────────────────────── */
+
+/* ─── 1. CSS CUSTOM PROPERTIES (THEME TOKENS) ──────────────────────────────── */
+
+:root {
+  /* Light theme defaults */
+  --color-bg:             #f9fafb;
+  --color-surface:        #ffffff;
+  --color-text-primary:   #111827;
+  --color-text-secondary: #6b7280;
+  --color-border:         #e5e7eb;
+  --color-accent:         #6366f1;
+  --color-danger:         #ef4444;
+
+  /* Derived / utility tokens — all reference only the primitives above */
+  --color-accent-hover:       color-mix(in srgb, var(--color-accent) 85%, black);
+  --color-danger-hover:       color-mix(in srgb, var(--color-danger) 85%, black);
+  --color-btn-ghost-hover:    color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  --color-input-focus-ring:   color-mix(in srgb, var(--color-accent) 30%, transparent);
+
+  /* Spacing scale */
+  --space-xs:   0.25rem;
+  --space-sm:   0.5rem;
+  --space-md:   1rem;
+  --space-lg:   1.5rem;
+  --space-xl:   2rem;
+
+  /* Radii */
+  --radius-sm:  0.25rem;
+  --radius-md:  0.5rem;
+  --radius-lg:  0.75rem;
+
+  /* Typography */
+  --font-sans:  system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-size-xs:   0.75rem;
+  --font-size-sm:   0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg:   1.125rem;
+  --font-size-xl:   1.25rem;
+  --font-size-2xl:  1.5rem;
+
+  /* Transitions */
+  --transition-fast:   150ms ease;
+  --transition-theme:  200ms ease;
+
+  /* Z-index layers */
+  --z-toast: 1000;
+
+  /* Layout */
+  --sidebar-width:    360px;
+  --content-max-width: 1400px;
+}
+
+[data-theme="dark"] {
+  --color-bg:             #111827;
+  --color-surface:        #1f2937;
+  --color-text-primary:   #f9fafb;
+  --color-text-secondary: #9ca3af;
+  --color-border:         #374151;
+  --color-accent:         #818cf8;
+  --color-danger:         #f87171;
+}
+
+/* ─── 2. RESET & BASE ───────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg);
+  min-height: 100vh;
+  transition:
+    background-color var(--transition-theme),
+    color var(--transition-theme);
+}
+
+img,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+ul {
+  list-style: none;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  border: none;
+  background: none;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* ─── 3. TYPOGRAPHY UTILITIES ──────────────────────────────────────────────── */
+
+h1 {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--color-text-primary);
+}
+
+h2 {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-md);
+}
+
+/* ─── 4. LAYOUT — HEADER ────────────────────────────────────────────────────── */
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-xl);
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: background-color var(--transition-theme), border-color var(--transition-theme);
+}
+
+/* ─── 5. LAYOUT — MAIN (TWO-COLUMN GRID) ───────────────────────────────────── */
+
+main {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-rows: auto;
+  align-items: start;
+  gap: var(--space-xl);
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-xl);
+  width: 100%;
+}
+
+/* Left column: stacks sections vertically */
+.column--left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-width: 0; /* prevent grid blowout */
+}
+
+/* Right column: stacks chart then list */
+.column--right {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+
+/* ─── 6. SECTIONS (CARD-LIKE SURFACES) ─────────────────────────────────────── */
+
+section {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  transition: background-color var(--transition-theme), border-color var(--transition-theme);
+}
+
+/* ─── 7. BALANCE SECTION ────────────────────────────────────────────────────── */
+
+#balance-section {
+  text-align: center;
+}
+
+.balance-amount {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-accent);
+  margin-top: var(--space-xs);
+  word-break: break-all;
+}
+
+/* ─── 8. FORM STYLES ────────────────────────────────────────────────────────── */
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.form-group:last-of-type {
+  margin-bottom: 0;
+}
+
+label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+input[type="text"],
+input[type="number"],
+input[type="month"],
+select {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-theme),
+    color var(--transition-theme),
+    box-shadow var(--transition-fast);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* Custom select arrow using a mask so it inherits --color-text-secondary */
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-md) center;
+  padding-right: calc(var(--space-md) * 2.5);
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="month"]:focus,
+select:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-input-focus-ring);
+}
+
+input[type="text"]::placeholder,
+input[type="number"]::placeholder {
+  color: var(--color-text-secondary);
+}
+
+/* Remove number input spinners for cleaner look */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* ─── 9. BUTTONS ────────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  line-height: 1.25;
+  white-space: nowrap;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  user-select: none;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Primary — filled accent */
+.btn--primary {
+  width: 100%;
+  background-color: var(--color-accent);
+  color: var(--color-surface);
+  border: 1px solid transparent;
+  margin-top: var(--space-md);
+}
+
+.btn--primary:hover {
+  background-color: var(--color-accent-hover);
+}
+
+.btn--primary:active {
+  transform: translateY(1px);
+}
+
+/* Secondary — outlined */
+.btn--secondary {
+  background-color: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  margin-top: var(--space-sm);
+}
+
+.btn--secondary:hover {
+  background-color: var(--color-input-focus-ring);
+}
+
+/* Ghost — low-emphasis */
+.btn--ghost {
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  margin-top: var(--space-sm);
+}
+
+.btn--ghost:hover {
+  background-color: var(--color-btn-ghost-hover);
+  color: var(--color-text-primary);
+}
+
+/* ─── 10. INLINE ERROR MESSAGES ─────────────────────────────────────────────── */
+
+.error-msg {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--color-danger);
+  min-height: 1em; /* reserve space to prevent layout shift */
+  line-height: 1.3;
+}
+
+/* Highlight the field itself when there is a sibling error message with text */
+input:has(+ .error-msg:not(:empty)),
+select:has(+ .error-msg:not(:empty)) {
+  border-color: var(--color-danger);
+}
+
+/* ─── 11. CATEGORY MANAGER ──────────────────────────────────────────────────── */
+
+.category-manager {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── 12. FILTER CONTROLS ───────────────────────────────────────────────────── */
+
+.filter-controls {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── 13. CHART SECTION ─────────────────────────────────────────────────────── */
+
+.chart-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+}
+
+#spending-chart {
+  max-width: 100%;
+  max-height: 320px;
+}
+
+/* ─── 14. EMPTY STATE ───────────────────────────────────────────────────────── */
+
+.empty-state {
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--space-xl) var(--space-md);
+}
+
+/* ─── 15. TRANSACTION LIST ──────────────────────────────────────────────────── */
+
+#transaction-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-height: 560px;
+  overflow-y: auto;
+  padding-right: var(--space-xs); /* breathing room beside scrollbar */
+  scroll-behavior: smooth;
+}
+
+/* Subtle scrollbar styling (webkit) */
+#transaction-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+#transaction-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#transaction-list::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+/* Empty state for the transaction list */
+.transaction-item--empty {
+  justify-content: center;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  border-style: dashed;
+  padding: var(--space-xl) var(--space-md);
+}
+
+/* Each transaction row */
+.transaction-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition:
+    background-color var(--transition-theme),
+    border-color var(--transition-theme);
+}
+
+.transaction-item:hover {
+  border-color: var(--color-accent);
+}
+
+/* Main info block */
+.transaction-item__info {
+  flex: 1;
+  min-width: 0; /* allow text to truncate */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.transaction-item__name {
+  font-weight: 500;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.transaction-item__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  flex-wrap: wrap;
+}
+
+.transaction-item__category {
+  background-color: var(--color-input-focus-ring);
+  color: var(--color-accent);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-xs);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Amount — right-aligned */
+.transaction-item__amount {
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Delete button (both class names are equivalent) */
+.btn--delete,
+.btn--danger {
+  flex-shrink: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  color: var(--color-danger);
+  border: 1px solid transparent;
+  font-size: var(--font-size-sm);
+  line-height: 1;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.btn--delete:hover,
+.btn--danger:hover {
+  background-color: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  border-color: var(--color-danger);
+}
+
+.btn--delete:focus-visible,
+.btn--danger:focus-visible {
+  outline: 2px solid var(--color-danger);
+  outline-offset: 2px;
+}
+
+/* ─── 16. THEME TOGGLE ──────────────────────────────────────────────────────── */
+
+#theme-toggle {
+  padding: var(--space-xs) var(--space-md);
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  transition:
+    background-color var(--transition-theme),
+    color var(--transition-theme),
+    border-color var(--transition-theme);
+  white-space: nowrap;
+}
+
+#theme-toggle:hover {
+  background-color: var(--color-btn-ghost-hover);
+}
+
+#theme-toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ─── 17. TOAST NOTIFICATIONS ───────────────────────────────────────────────── */
+
+#toast-container {
+  position: fixed;
+  bottom: var(--space-md);
+  right: var(--space-md);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-width: min(360px, calc(100vw - 2rem));
+  pointer-events: none; /* container doesn't block clicks */
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  pointer-events: auto;
+  animation: toast-in var(--transition-fast) ease forwards;
+}
+
+.toast--warning {
+  border-left: 4px solid color-mix(in srgb, var(--color-danger) 60%, var(--color-accent));
+}
+
+.toast--error {
+  border-left: 4px solid var(--color-danger);
+  color: var(--color-text-primary);
+}
+
+.toast__message {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.toast__close {
+  flex-shrink: 0;
+  padding: 0 var(--space-xs);
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.toast__close:hover {
+  color: var(--color-text-primary);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── 18. RESPONSIVE BREAKPOINTS ───────────────────────────────────────────── */
+
+/*
+  Breakpoints:
+    < 640px   — single column, compact header
+    640–767px — single column, slightly more breathing room
+    768–1023px — two-column but narrower sidebar (300px)
+    ≥ 1024px  — full two-column layout as designed
+*/
+
+/* Narrow phones (320px–639px) */
+@media (max-width: 639px) {
+  :root {
+    --font-size-2xl: 1.25rem;
+    --sidebar-width: 100%;
+  }
+
+  header {
+    padding: var(--space-sm) var(--space-md);
+    flex-wrap: wrap;
+  }
+
+  header h1 {
+    font-size: var(--font-size-lg);
+  }
+
+  main {
+    grid-template-columns: 1fr;
+    padding: var(--space-md);
+    gap: var(--space-md);
+  }
+
+  .column--left,
+  .column--right {
+    width: 100%;
+  }
+
+  #transaction-list {
+    max-height: 400px;
+  }
+
+  #spending-chart {
+    max-height: 260px;
+  }
+
+  .balance-amount {
+    font-size: var(--font-size-xl);
+  }
+}
+
+/* Larger phones and small tablets (640px–767px) */
+@media (min-width: 640px) and (max-width: 767px) {
+  main {
+    grid-template-columns: 1fr;
+    padding: var(--space-lg);
+    gap: var(--space-lg);
+  }
+
+  .column--left,
+  .column--right {
+    width: 100%;
+  }
+}
+
+/* Tablets (768px–1023px) — two-column with compact sidebar */
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root {
+    --sidebar-width: 300px;
+  }
+
+  main {
+    grid-template-columns: var(--sidebar-width) 1fr;
+    padding: var(--space-lg);
+  }
+}
+
+/* Desktop and up (≥ 1024px) — full layout, nothing extra needed */
+@media (min-width: 1024px) {
+  main {
+    grid-template-columns: var(--sidebar-width) 1fr;
+  }
+}
+
+/* Ultra-wide (≥ 1600px) — widen sidebar slightly so it doesn't feel lost */
+@media (min-width: 1600px) {
+  :root {
+    --sidebar-width: 400px;
+    --content-max-width: 1600px;
+  }
+}
+
+/* ─── 19. ACCESSIBILITY ─────────────────────────────────────────────────────── */
+
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus-visible outlines for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Skip-link support (if ever added) */
+a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}

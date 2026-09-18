@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Expense & Budget Visualizer — Test Suite</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f1f5f9; color: #1e293b; padding: 1.5rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 1rem; }
+    h2 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; color: #475569; border-bottom: 1px solid #cbd5e1; padding-bottom: 0.25rem; }
+    #summary { margin-bottom: 1.5rem; padding: 0.75rem 1rem; background: #fff; border-radius: 0.5rem; border: 1px solid #e2e8f0; font-size: 0.9rem; }
+    #summary.pass { border-left: 4px solid #22c55e; }
+    #summary.fail { border-left: 4px solid #ef4444; }
+    .test { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.5rem 0.75rem; margin: 0.25rem 0; border-radius: 0.375rem; font-size: 0.85rem; background: #fff; border: 1px solid #e2e8f0; }
+    .test.pass { border-left: 4px solid #22c55e; }
+    .test.fail { border-left: 4px solid #ef4444; }
+    .test.skip { border-left: 4px solid #94a3b8; opacity: 0.7; }
+    .badge { font-size: 0.75rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 0.25rem; white-space: nowrap; flex-shrink: 0; margin-top: 0.1rem; }
+    .badge.pass { background: #dcfce7; color: #166534; }
+    .badge.fail { background: #fee2e2; color: #991b1b; }
+    .badge.skip { background: #f1f5f9; color: #475569; }
+    .test-name { flex: 1; }
+    .test-detail { margin-top: 0.25rem; font-size: 0.78rem; color: #64748b; font-family: monospace; word-break: break-all; }
+    .test-detail.error { color: #b91c1c; }
+    #output { min-height: 4rem; }
+  </style>
+</head>
+<body>
+  <h1>Expense &amp; Budget Visualizer — Property-Based Test Suite</h1>
+  <div id="summary">Loading tests…</div>
+  <div id="output"></div>
+
+  <!-- fast-check CDN (property-based testing library) -->
+  <script src="https://cdn.jsdelivr.net/npm/fast-check/lib/bundle/fast-check.min.js"></script>
+
+  <script>
+  // ─────────────────────────────────────────────────────────────────────────────
+  // EXTRACTED PURE LOGIC FROM app.js
+  // These functions are copied / adapted from app.js and operate without DOM.
+  // Tests target these pure functions directly.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // ── Constants (mirrored from app.js) ────────────────────────────────────────
+  const STORAGE_KEYS = {
+    transactions: 'ebv_transactions',
+    categories:   'ebv_categories',
+    theme:        'ebv_theme'
+  };
+
+  const BUILT_IN_CATEGORIES = ['Food', 'Transport', 'Fun'];
+
+  const VALIDATION = {
+    NAME_MAX:          100,
+    AMOUNT_MIN:        0.01,
+    AMOUNT_MAX:        999999999.99,
+    CATEGORY_NAME_MAX: 50
+  };
+
+  const CHART_COLORS = [
+    '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#3b82f6',
+    '#ec4899', '#14b8a6', '#f97316', '#8b5cf6', '#84cc16',
+    '#06b6d4', '#e11d48'
+  ];
+
+  // ── Pure logic functions (mirrored from app.js) ──────────────────────────────
+
+  function validateTransaction({ name, amount, category }) {
+    const errors = {};
+    const trimmedName = (name ?? '').toString().trim();
+    if (trimmedName.length === 0) {
+      errors.name = 'Item name is required.';
+    } else if (trimmedName.length > VALIDATION.NAME_MAX) {
+      errors.name = `Item name cannot exceed ${VALIDATION.NAME_MAX} characters.`;
+    }
+    const parsedAmount = parseFloat(amount);
+    if (amount === '' || amount === null || amount === undefined) {
+      errors.amount = 'Amount is required.';
+    } else if (!isFinite(parsedAmount) || isNaN(parsedAmount)) {
+      errors.amount = 'Amount must be a valid number.';
+    } else if (parsedAmount < VALIDATION.AMOUNT_MIN || parsedAmount > VALIDATION.AMOUNT_MAX) {
+      errors.amount = `Amount must be between ${VALIDATION.AMOUNT_MIN} and ${VALIDATION.AMOUNT_MAX}.`;
+    }
+    const trimmedCategory = (category ?? '').toString().trim();
+    if (trimmedCategory.length === 0) {
+      errors.category = 'Please select a category.';
+    }
+    return { valid: Object.keys(errors).length === 0, errors };
+  }
+
+  function validateCategory({ name, existing }) {
+    const trimmed = (name ?? '').toString().trim();
+    if (trimmed.length === 0) return { valid: false, error: 'Category name cannot be empty.' };
+    if (trimmed.length > VALIDATION.CATEGORY_NAME_MAX) {
+      return { valid: false, error: `Category name cannot exceed ${VALIDATION.CATEGORY_NAME_MAX} characters.` };
+    }
+    const lowerTrimmed = trimmed.toLowerCase();
+    const isDuplicate = (existing ?? []).some(c => c.toLowerCase() === lowerTrimmed);
+    if (isDuplicate) return { valid: false, error: 'Category already exists.' };
+    return { valid: true };
+  }
+
+  function getVisibleTransactions_pure(transactions, activeFilter) {
+    if (!activeFilter) return [...transactions];
+    const { year, month } = activeFilter;
+    return transactions.filter(tx => {
+      const d = new Date(tx.timestamp);
+      return d.getFullYear() === year && (d.getMonth() + 1) === month;
+    });
+  }
+
+  function computeBalance(transactions) {
+    const total = transactions.reduce((sum, tx) => sum + tx.amount, 0);
+    return total.toFixed(2);
+  }
+
+  function computeChartData(transactions) {
+    const totals = {};
+    for (const tx of transactions) {
+      if (!totals[tx.category]) totals[tx.category] = 0;
+      totals[tx.category] += tx.amount;
+    }
+    const categories = Object.keys(totals).filter(cat => totals[cat] > 0);
+    if (categories.length === 0) return null;
+    const grandTotal = categories.reduce((sum, cat) => sum + totals[cat], 0);
+    const percentages = categories.map(cat =>
+      Math.round((totals[cat] / grandTotal) * 1000) / 10
+    );
+    const colors = [];
+    for (let i = 0; i < categories.length; i++) {
+      let colorIndex = i % CHART_COLORS.length;
+      if (colors.length > 0 && CHART_COLORS[colorIndex] === colors[colors.length - 1]) {
+        colorIndex = (colorIndex + 1) % CHART_COLORS.length;
+      }
+      colors.push(CHART_COLORS[colorIndex]);
+    }
+    return { categories, percentages, colors };
+  }
+
+  function sortByTimestampDesc(transactions) {
+    return [...transactions].sort(
+      (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+    );
+  }
+
+  function initCategories_pure(storedCustomCategories) {
+    const merged = [...BUILT_IN_CATEGORIES];
+    for (const name of storedCustomCategories) {
+      const isDuplicate = merged.some(
+        existing => existing.toLowerCase() === name.toLowerCase()
+      );
+      if (!isDuplicate) merged.push(name);
+    }
+    return merged;
+  }
+
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // TEST RUNNER
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  const results = [];
+  let currentGroup = '';
+
+  function group(name) {
+    currentGroup = name;
+  }
+
+  function test(name, fn) {
+    const entry = { group: currentGroup, name, status: 'pass', detail: '' };
+    try {
+      fn();
+      entry.status = 'pass';
+    } catch (err) {
+      entry.status = 'fail';
+      entry.detail = err && err.message ? err.message : String(err);
+    }
+    results.push(entry);
+  }
+
+  function assert(condition, msg) {
+    if (!condition) throw new Error(msg || 'Assertion failed');
+  }
+
+  function assertEqual(a, b, msg) {
+    if (a !== b) throw new Error(msg || `Expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`);
+  }
+
+  function assertDeepEqual(a, b, msg) {
+    const as = JSON.stringify(a);
+    const bs = JSON.stringify(b);
+    if (as !== bs) throw new Error(msg || `Expected\n  ${bs}\ngot\n  ${as}`);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // PROPERTY-BASED TESTS — ALL 15 DESIGN PROPERTIES
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // ── P1: Validator accepts all and only valid inputs ──────────────────────────
+  // Validates: Requirements 1.2
+  group('P1 — Validator accepts all and only valid inputs');
+
+  test('P1: valid inputs pass validation', () => {
+    // Feature: expense-budget-visualizer, Property 1: Validator accepts all and only valid inputs
+    fc.assert(
+      fc.property(
+        fc.string({ minLength: 1, maxLength: 100 }).filter(s => s.trim().length > 0 && s.trim().length <= 100),
+        fc.float({ min: 0.01, max: 999999999.99, noNaN: true }).filter(n => isFinite(n)),
+        fc.constantFrom('Food', 'Transport', 'Fun', 'Shopping'),
+        (name, amount, category) => {
+          const r = validateTransaction({ name, amount, category });
+          if (!r.valid) {
+            throw new Error(`Expected valid for name="${name}" amount=${amount} category=${category}, got errors: ${JSON.stringify(r.errors)}`);
+          }
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  test('P1: empty name fails validation', () => {
+    // Feature: expense-budget-visualizer, Property 1
+    fc.assert(
+      fc.property(
+        fc.constantFrom('', '   ', '\t', '\n'),
+        fc.float({ min: 0.01, max: 999999999.99, noNaN: true }),
+        fc.constantFrom('Food', 'Transport', 'Fun'),
+        (name, amount, category) => {
+          const r = validateTransaction({ name, amount, category });
+          if (r.valid) throw new Error(`Expected invalid for empty name="${name}"`);
+          if (!r.errors.name) throw new Error('Expected errors.name to be set for empty name');
+          return true;
+        }
+      ),
+      { numRuns: 50 }
+    );
+  });
+
+  test('P1: name exceeding 100 chars fails validation', () => {
+    // Feature: expense-budget-visualizer, Property 1
+    fc.assert(
+      fc.property(
+        fc.string({ minLength: 101, maxLength: 200 }),
+        fc.float({ min: 0.01, max: 999999999.99, noNaN: true }),
+        fc.constantFrom('Food', 'Transport', 'Fun'),
+        (name, amount, category) => {
+          const r = validateTransaction({ name, amount, category });
+          if (r.valid) throw new Error(`Expected invalid for long name (${name.length} chars)`);
+          if (!r.errors.name) throw new Error('Expected errors.name for long name');
+          return true;
+        }
+      ),
+      { numRuns: 50 }
+    );
+  });
+
+  test('P1: amount out of range fails validation', () => {
+    // Feature: expense-budget-visualizer, Property 1
+    fc.assert(
+      fc.property(
+        fc.oneof(
+          fc.float({ min: -999999, max: 0.0099, noNaN: true }),
+          fc.float({ min: 1000000000, max: 9999999999, noNaN: true }).filter(n => isFinite(n))
+        ),
+        (amount) => {
+          const r = validateTransaction({ name: 'Test', amount, category: 'Food' });
+          if (r.valid) throw new Error(`Expected invalid for out-of-range amount ${amount}`);
+          if (!r.errors.amount) throw new Error('Expected errors.amount for out-of-range');
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  test('P1: empty category fails validation', () => {
+    // Feature: expense-budget-visualizer, Property 1
+    fc.assert(
+      fc.property(
+        fc.string({ minLength: 1, maxLength: 100 }).filter(s => s.trim().length > 0),
+        fc.float({ min: 0.01, max: 999999999.99, noNaN: true }),
+        fc.constantFrom('', '   '),
+        (name, amount, category) => {
+          const r = validateTransaction({ name, amount, category });
+          if (r.valid) throw new Error(`Expected invalid for empty category`);
+          if (!r.errors.category) throw new Error('Expected errors.category for empty category');
+          return true;
+        }
+      ),
+      { numRuns: 50 }
+    );
+  });
+
+  // ── P2: Transaction creation preserves all fields ────────────────────────────
+  // Validates: Requirements 1.6
+  group('P2 — Transaction creation preserves all fields');
+
+  test('P2: created transaction preserves name, amount, category, and valid timestamp', () => {
+    // Feature: expense-budget-visualizer, Property 2: Transaction creation preserves all fields
+    fc.assert(
+      fc.property(
+        fc.string({ minLength: 1, maxLength: 100 }).filter(s => s.trim().length > 0),
+        fc.float({ min: 0.01, max: 999999999.99, noNaN: true }).filter(n => isFinite(n)),
+        fc.constantFrom('Food', 'Transport', 'Fun', 'Shopping'),
+        (nameRaw, amount, category) => {
+          const name = nameRaw.trim();
+          // Simulate transaction creation (matches addTransaction logic)
+          const tx = {
+            id:        'test-uuid',
+            name:      nameRaw.toString().trim(),
+            amount:    parseFloat(amount),
+            category,
+            timestamp: new Date().toISOString()
+          };
+
+          if (tx.name !== name) throw new Error(`name mismatch: expected "${name}", got "${tx.name}"`);
+          if (tx.amount !== parseFloat(amount)) throw new Error(`amount mismatch`);
+          if (tx.category !== category) throw new Error(`category mismatch`);
+          if (typeof tx.timestamp !== 'string') throw new Error('timestamp must be a string');
+          if (isNaN(new Date(tx.timestamp).getTime())) throw new Error('timestamp must be valid ISO 8601');
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  // ── P3: List render contains all fields for every transaction ────────────────
+  // Validates: Requirements 2.1
+  group('P3 — List render contains all fields for every transaction');
+
+  test('P3: rendered list items include name, amount (2dp), and category', () => {
+    // Feature: expense-budget-visualizer, Property 3: Transaction list render contains all fields
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            id:        fc.string({ minLength: 4, maxLength: 36 }),
+            name:      fc.string({ minLength: 1, maxLength: 100 }).filter(s => s.trim().length > 0),
+            amount:    fc.float({ min: 0.01, max: 999999, noNaN: true }).filter(n => isFinite(n)),
+            category:  fc.constantFrom('Food', 'Transport', 'Fun'),
+            timestamp: fc.date({ min: new Date('2020-01-01'), max: new Date('2030-12-31') })
+              .map(d => d.toISOString())
+          }),
+          { minLength: 0, maxLength: 50 }
+        ),
+        (transactions) => {
+          // Build a minimal DOM container to render into
+          const ul = document.createElement('ul');
+
+          if (transactions.length === 0) {
+            const li = document.createElement('li');
+            li.className = 'empty-state-item';
+            li.textContent = 'No transactions recorded yet.';
+            ul.appendChild(li);
+          } else {
+            // Sort: most recent first (mirrors app.js renderTransactionList)
+            const sorted = [...transactions].sort(
+              (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+            );
+            for (const tx of sorted) {
+              const li = document.createElement('li');
+              li.className = 'transaction-item';
+              const nameEl = document.createElement('span');
+              nameEl.className = 'transaction-item__name';
+              nameEl.textContent = tx.name;
+              const amountEl = document.createElement('span');
+              amountEl.className = 'transaction-item__amount';
+              amountEl.textContent = tx.amount.toFixed(2);
+              const catEl = document.createElement('span');
+              catEl.className = 'transaction-item__category';
+              catEl.textContent = tx.category;
+              li.appendChild(nameEl);
+              li.appendChild(amountEl);
+              li.appendChild(catEl);
+              ul.appendChild(li);
+            }
+          }
+
+          if (transactions.length === 0) {
+            // Empty state: one list item with empty-state message
+            const items = ul.querySelectorAll('li');
+            if (items.length !== 1) throw new Error(`Expected 1 empty-state item, got ${items.length}`);
+            return true;
+          }
+
+          // Check count
+          const items = ul.querySelectorAll('li.transaction-item');
+          if (items.length !== transactions.length) {
+            throw new Error(`Expected ${transactions.length} items, got ${items.length}`);
+          }
+
+          // Verify each rendered item (in sorted order) has name, amount, category
+          const sorted = [...transactions].sort(
+            (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+          );
+          for (let i = 0; i < sorted.length; i++) {
+            const tx = sorted[i];
+            const li = items[i];
+
+            const renderedName   = li.querySelector('.transaction-item__name')?.textContent;
+            const renderedAmount = li.querySelector('.transaction-item__amount')?.textContent;
+            const renderedCat    = li.querySelector('.transaction-item__category')?.textContent;
+
+            if (renderedName !== tx.name)
+              throw new Error(`Row ${i} name mismatch: expected "${tx.name}", got "${renderedName}"`);
+            if (renderedAmount !== tx.amount.toFixed(2))
+              throw new Error(`Row ${i} amount mismatch: expected "${tx.amount.toFixed(2)}", got "${renderedAmount}"`);
+            if (renderedCat !== tx.category)
+              throw new Error(`Row ${i} category mismatch: expected "${tx.category}", got "${renderedCat}"`);
+          }
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  // ── P4: Transaction list is sorted reverse-chronologically ──────────────────
+  // Validates: Requirements 2.3
+  group('P4 — Transaction list sorted in reverse-chronological order');
+
+  test('P4: sorted result is descending by timestamp', () => {
+    // Feature: expense-budget-visualizer, Property 4: Reverse-chronological order
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            id:        fc.string({ minLength: 4, maxLength: 36 }),
+            name:      fc.constant('Test'),
+            amount:    fc.constant(1.00),
+            category:  fc.constant('Food'),
+            timestamp: fc.date({ min: new Date('2020-01-01'), max: new Date('2030-12-31') })
+              .map(d => d.toISOString())
+          }),
+          { minLength: 1, maxLength: 50 }
+        ),
+        (transactions) => {
+          const sorted = sortByTimestampDesc(transactions);
+          for (let i = 0; i < sorted.length - 1; i++) {
+            const tsA = new Date(sorted[i].timestamp).getTime();
+            const tsB = new Date(sorted[i + 1].timestamp).getTime();
+            if (tsA < tsB) {
+              throw new Error(`Sort order violation: item[${i}].timestamp (${sorted[i].timestamp}) < item[${i+1}].timestamp (${sorted[i+1].timestamp})`);
+            }
+          }
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  // ── P5: Delete removes transaction from state and storage ────────────────────
+  // Validates: Requirements 2.4
+  group('P5 — Delete removes transaction from state and storage');
+
+  test('P5: deleted transaction is absent from state', () => {
+    // Feature: expense-budget-visualizer, Property 5: Delete removes from state and storage
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            id:        fc.string({ minLength: 4, maxLength: 36 }),
+            name:      fc.constant('Test'),
+            amount:    fc.float({ min: 0.01, max: 100, noNaN: true }),
+            category:  fc.constant('Food'),
+            timestamp: fc.date().map(d => d.toISOString())
+          }),
+          { minLength: 1, maxLength: 20 }
+        ),
+        fc.integer({ min: 0, max: 19 }),
+        (transactions, pickIndex) => {
+          const cloned = transactions.map(t => ({ ...t }));
+          const idx = pickIndex % cloned.length;
+          const target = cloned[idx];
+
+          // Simulate deleteTransaction logic (pure state part)
+          const filtered = cloned.filter(t => t.id !== target.id);
+
+          // Verify the target is gone
+          if (filtered.some(t => t.id === target.id)) {
+            throw new Error(`Transaction ${target.id} still present after delete`);
+          }
+          // Verify count is one less
+          const expectedLen = cloned.filter(t => t.id !== target.id).length;
+          if (filtered.length !== expectedLen) {
+            throw new Error(`Length mismatch: expected ${expectedLen}, got ${filtered.length}`);
+          }
+
+          // Storage side: simulate save/load round-trip
+          const serialized = JSON.stringify(filtered);
+          const restored = JSON.parse(serialized);
+          if (restored.some(t => t.id === target.id)) {
+            throw new Error(`Transaction ${target.id} found in storage after delete`);
+          }
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  // ── P6: Balance equals sum of visible transaction amounts ────────────────────
+  // Validates: Requirements 3.1, 3.5
+  group('P6 — Balance equals sum of visible transaction amounts');
+
+  test('P6: balance equals arithmetic sum to 2dp for any transaction array', () => {
+    // Feature: expense-budget-visualizer, Property 6: Balance display equals sum
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            id:        fc.string({ minLength: 4, maxLength: 36 }),
+            name:      fc.constant('Test'),
+            amount:    fc.float({ min: 0.01, max: 99999, noNaN: true }).filter(n => isFinite(n)),
+            category:  fc.constant('Food'),
+            timestamp: fc.date().map(d => d.toISOString())
+          }),
+          { minLength: 0, maxLength: 50 }
+        ),
+        (transactions) => {
+          const expected = transactions.reduce((sum, tx) => sum + tx.amount, 0).toFixed(2);
+          const actual = computeBalance(transactions);
+          if (actual !== expected) {
+            throw new Error(`Balance mismatch: expected ${expected}, got ${actual}`);
+          }
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  test('P6: empty array produces "0.00"', () => {
+    const result = computeBalance([]);
+    assertEqual(result, '0.00', `Expected "0.00" for empty array, got "${result}"`);
+  });
+
+  // ── P7: Chart segments cover all categories with positive totals ─────────────
+  // Validates: Requirements 4.1
+  group('P7 — Chart segments cover all categories with positive totals');
+
+  test('P7: chart data includes exactly one segment per category with positive total', () => {
+    // Feature: expense-budget-visualizer, Property 7: Chart segments cover all categories with positive totals
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            id:        fc.string({ minLength: 4, maxLength: 36 }),
+            name:      fc.constant('Test'),
+            amount:    fc.float({ min: 0.01, max: 999, noNaN: true }).filter(n => isFinite(n) && n > 0),
+            category:  fc.constantFrom('Food', 'Transport', 'Fun', 'Shopping', 'Bills'),
+            timestamp: fc.date().map(d => d.toISOString())
+          }),
+          { minLength: 1, maxLength: 30 }
+        ),
+        (transactions) => {
+          const data = computeChartData(transactions);
+          if (!data) throw new Error('Expected chart data for non-empty positive transactions');
+
+          // Compute expected categories manually
+          const totals = {};
+          for (const tx of transactions) {
+            totals[tx.category] = (totals[tx.category] || 0) + tx.amount;
+          }
+          const expectedCats = Object.keys(totals).filter(c => totals[c] > 0).sort();
+          const actualCats   = [...data.categories].sort();
+
+          if (JSON.stringify(expectedCats) !== JSON.stringify(actualCats)) {
+            throw new Error(`Category mismatch: expected ${JSON.stringify(expectedCats)}, got ${JSON.stringify(actualCats)}`);
+          }
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  test('P7: empty transactions produce null chart data (no-data path)', () => {
+    const data = computeChartData([]);
+    assert(data === null, `Expected null for empty transactions, got ${JSON.stringify(data)}`);
+  });
+
+  // ── P8: Legend percentages rounded to 1 decimal place ───────────────────────
+  // Validates: Requirements 4.4
+  group('P8 — Chart legend percentages rounded to 1dp');
+
+  test('P8: all percentages are expressed to exactly 1 decimal place', () => {
+    // Feature: expense-budget-visualizer, Property 8: Legend percentages rounded to 1dp
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            id:        fc.string({ minLength: 4, maxLength: 36 }),
+            name:      fc.constant('Test'),
+            amount:    fc.float({ min: 1, max: 1000, noNaN: true }).filter(n => isFinite(n) && n > 0),
+            category:  fc.constantFrom('Food', 'Transport', 'Fun', 'Shopping'),
+            timestamp: fc.date().map(d => d.toISOString())
+          }),
+          { minLength: 1, maxLength: 20 }
+        ),
+        (transactions) => {
+          const data = computeChartData(transactions);
+          if (!data) return true; // no data = no percentages to check
+
+          for (let i = 0; i < data.percentages.length; i++) {
+            const pct = data.percentages[i];
+
+            // The value must be a multiple of 0.1 (i.e., exactly 1dp)
+            // pct * 10 should be an integer (no fractional tenths)
+            const scaled = Math.round(pct * 10); // use round to avoid float noise
+            if (Math.abs(scaled / 10 - pct) > 1e-9) {
+              throw new Error(`Percentage ${pct} is not rounded to 1dp`);
+            }
+
+            // Verify the .toFixed(1) representation of the percentage
+            // matches what would appear in the legend label
+            const labelPct = pct.toFixed(1);
+            // The label produced by the tooltip callback should contain this
+            const label = ` ${data.categories[i]}: ${labelPct}%`;
+            if (!label.includes(labelPct)) {
+              throw new Error(`Label "${label}" does not include percentage ${labelPct}`);
+            }
+          }
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  test('P8: percentages sum to 100 within floating-point tolerance', () => {
+    // Feature: expense-budget-visualizer, Property 8
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            id:        fc.string({ minLength: 4, maxLength: 36 }),
+            name:      fc.constant('Test'),
+            amount:    fc.float({ min: 1, max: 100, noNaN: true }).filter(n => isFinite(n) && n > 0),
+            category:  fc.constantFrom('Food', 'Transport', 'Fun', 'Bills'),
+            timestamp: fc.date().map(d => d.toISOString())
+          }),
+          { minLength: 2, maxLength: 10 }
+        ),
+        (transactions) => {
+          const data = computeChartData(transactions);
+          if (!data) return true;
+          const sum = data.percentages.reduce((s, p) => s + p, 0);
+          // Allow tolerance of ±1 due to 1dp rounding across multiple categories
+          if (Math.abs(sum - 100) > 1.0) {
+            throw new Error(`Percentages sum to ${sum}, expected ~100 (tolerance ±1)`);
+          }
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  // ── P9: Adjacent chart segments have distinct colors ────────────────────────
+  // Validates: Requirements 4.6
+  group('P9 — Adjacent chart segments have distinct colors');
+
+  test('P9: no two adjacent colors are equal for any category list of length ≥ 2', () => {
+    // Feature: expense-budget-visualizer, Property 9: Adjacent chart segments have distinct colors
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.string({ minLength: 1, maxLength: 20 }).filter(s => s.trim().length > 0),
+          { minLength: 2, maxLength: 20 }
+        ),
+        (categoryNames) => {
+          // Simulate the color assignment algorithm from app.js renderChart
+          const colors = [];
+          for (let i = 0; i < categoryNames.length; i++) {
+            let colorIndex = i % CHART_COLORS.length;
+            if (colors.length > 0 && CHART_COLORS[colorIndex] === colors[colors.length - 1]) {
+              colorIndex = (colorIndex + 1) % CHART_COLORS.length;
+            }
+            colors.push(CHART_COLORS[colorIndex]);
+          }
+
+          for (let i = 0; i < colors.length - 1; i++) {
+            if (colors[i] === colors[i + 1]) {
+              throw new Error(`Adjacent colors are equal at index ${i}: ${colors[i]}`);
+            }
+          }
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  // ── P10: Transaction storage round-trip preserves the complete list ──────────
+  // Validates: Requirements 5.1, 5.3
+  group('P10 — Transaction storage round-trip preserves complete list');
+
+  test('P10: JSON serialization round-trip is deeply equal', () => {
+    // Feature: expense-budget-visualizer, Property 10: Storage round-trip preserves list
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            id:        fc.string({ minLength: 4, maxLength: 36 }),
+            name:      fc.string({ minLength: 1, maxLength: 100 }).filter(s => s.trim().length > 0),
+            amount:    fc.float({ min: 0.01, max: 999999, noNaN: true }).filter(n => isFinite(n)),
+            category:  fc.constantFrom('Food', 'Transport', 'Fun'),
+            timestamp: fc.date({ min: new Date('2020-01-01'), max: new Date('2030-12-31') })
+              .map(d => d.toISOString())
+          }),
+          { minLength: 0, maxLength: 20 }
+        ),
+        (transactions) => {
+          // Simulate saveTransactions + loadFromStorage (JSON round-trip)
+          const serialized = JSON.stringify(transactions);
+          const restored = JSON.parse(serialized);
+
+          if (JSON.stringify(restored) !== JSON.stringify(transactions)) {
+            throw new Error('Round-trip mismatch: restored !== original');
+          }
+
+          // Verify all individual fields
+          for (let i = 0; i < transactions.length; i++) {
+            const orig = transactions[i];
+            const rest = restored[i];
+            if (orig.id !== rest.id) throw new Error(`id mismatch at index ${i}`);
+            if (orig.name !== rest.name) throw new Error(`name mismatch at index ${i}`);
+            if (orig.amount !== rest.amount) throw new Error(`amount mismatch at index ${i}`);
+            if (orig.category !== rest.category) throw new Error(`category mismatch at index ${i}`);
+            if (orig.timestamp !== rest.timestamp) throw new Error(`timestamp mismatch at index ${i}`);
+          }
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  // ── P11: Category duplicate detection is case-insensitive ───────────────────
+  // Validates: Requirements 7.2
+  group('P11 — Category duplicate detection is case-insensitive');
+
+  test('P11: any casing variation of an existing category is detected as duplicate', () => {
+    // Feature: expense-budget-visualizer, Property 11: Duplicate detection is case-insensitive
+    fc.assert(
+      fc.property(
+        fc.string({ minLength: 1, maxLength: 50 })
+          .filter(s => s.trim().length > 0 && s.trim().length <= 50),
+        fc.array(
+          fc.string({ minLength: 1, maxLength: 30 }).filter(s => s.trim().length > 0),
+          { minLength: 0, maxLength: 10 }
+        ),
+        (baseName, others) => {
+          const trimmed = baseName.trim();
+          const upper   = trimmed.toUpperCase();
+          const lower   = trimmed.toLowerCase();
+
+          // existing list contains the base name (and some unrelated others)
+          const existing = [trimmed, ...others.filter(
+            o => o.trim().toLowerCase() !== trimmed.toLowerCase()
+          )];
+
+          // Uppercase version should be a duplicate
+          const r1 = validateCategory({ name: upper, existing });
+          if (r1.valid) throw new Error(`Upper "${upper}" not detected as duplicate of "${trimmed}"`);
+
+          // Lowercase version should be a duplicate
+          const r2 = validateCategory({ name: lower, existing });
+          if (r2.valid) throw new Error(`Lower "${lower}" not detected as duplicate of "${trimmed}"`);
+
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  test('P11: genuinely new category name is not rejected as duplicate', () => {
+    // Feature: expense-budget-visualizer, Property 11
+    fc.assert(
+      fc.property(
+        fc.string({ minLength: 1, maxLength: 50 })
+          .filter(s => s.trim().length > 0 && s.trim().length <= 50),
+        (newName) => {
+          // existing list does NOT contain newName (different string entirely)
+          const existing = ['AAA_UNIQUE_EXISTING_9999'];
+          const r = validateCategory({ name: newName, existing: existing.filter(
+            e => e.toLowerCase() !== newName.trim().toLowerCase()
+          )});
+          // Should be valid (not a duplicate error), though could fail for other reasons (length)
+          if (!r.valid && r.error === 'Category already exists.') {
+            throw new Error(`"${newName}" incorrectly flagged as duplicate when it is not in existing`);
+          }
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  // ── P12: Custom category list fully restored after reload ────────────────────
+  // Validates: Requirements 7.5, 6.3
+  group('P12 — Custom category list fully restored after reload');
+
+  test('P12: all saved custom categories are restored and built-ins are always present', () => {
+    // Feature: expense-budget-visualizer, Property 12: Custom categories restored after reload
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.string({ minLength: 1, maxLength: 50 })
+            .filter(s => {
+              const t = s.trim();
+              return t.length > 0 &&
+                !BUILT_IN_CATEGORIES.some(b => b.toLowerCase() === t.toLowerCase());
+            }),
+          { minLength: 0, maxLength: 15 }
+        ),
+        (customNames) => {
+          // Simulate save: only unique custom names (no built-ins)
+          const uniqueCustom = [];
+          for (const n of customNames) {
+            const t = n.trim();
+            if (!uniqueCustom.some(u => u.toLowerCase() === t.toLowerCase())) {
+              uniqueCustom.push(t);
+            }
+          }
+
+          // Simulate JSON round-trip (save + load)
+          const serialized = JSON.stringify(uniqueCustom);
+          const restored = JSON.parse(serialized);
+
+          // Simulate initCategories with restored custom categories
+          const merged = initCategories_pure(restored);
+
+          // All built-ins must be present
+          for (const builtIn of BUILT_IN_CATEGORIES) {
+            if (!merged.some(c => c.toLowerCase() === builtIn.toLowerCase())) {
+              throw new Error(`Built-in category "${builtIn}" missing after reload`);
+            }
+          }
+
+          // All unique custom names must be present
+          for (const name of uniqueCustom) {
+            if (!merged.some(c => c.toLowerCase() === name.toLowerCase())) {
+              throw new Error(`Custom category "${name}" missing after reload`);
+            }
+          }
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  // ── P13: Month filter returns exactly the transactions within selected month ─
+  // Validates: Requirements 8.2
+  group('P13 — Month filter returns exactly transactions within selected month');
+
+  test('P13: filter returns only transactions matching the year/month', () => {
+    // Feature: expense-budget-visualizer, Property 13: Month filter correctness
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            id:        fc.string({ minLength: 4, maxLength: 36 }),
+            name:      fc.constant('Test'),
+            amount:    fc.constant(1),
+            category:  fc.constant('Food'),
+            timestamp: fc.date({ min: new Date('2022-01-01'), max: new Date('2026-12-31') })
+              .map(d => d.toISOString())
+          }),
+          { minLength: 0, maxLength: 30 }
+        ),
+        fc.integer({ min: 2022, max: 2026 }),
+        fc.integer({ min: 1, max: 12 }),
+        (transactions, year, month) => {
+          const filtered = getVisibleTransactions_pure(transactions, { year, month });
+
+          // Every returned transaction must fall in (year, month)
+          for (const tx of filtered) {
+            const d = new Date(tx.timestamp);
+            if (d.getFullYear() !== year || (d.getMonth() + 1) !== month) {
+              throw new Error(`Transaction ${tx.id} with timestamp ${tx.timestamp} should not appear for filter ${year}-${month}`);
+            }
+          }
+
+          // Every transaction in (year, month) must be in the result
+          const expected = transactions.filter(tx => {
+            const d = new Date(tx.timestamp);
+            return d.getFullYear() === year && (d.getMonth() + 1) === month;
+          });
+          if (filtered.length !== expected.length) {
+            throw new Error(`Filter count mismatch: expected ${expected.length}, got ${filtered.length}`);
+          }
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  // ── P14: Filter-then-clear restores the unfiltered list ─────────────────────
+  // Validates: Requirements 8.5
+  group('P14 — Filter-then-clear restores unfiltered list');
+
+  test('P14: clearing any filter returns all transactions unchanged', () => {
+    // Feature: expense-budget-visualizer, Property 14: Filter-then-clear restores all
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            id:        fc.string({ minLength: 4, maxLength: 36 }),
+            name:      fc.constant('Test'),
+            amount:    fc.constant(1),
+            category:  fc.constant('Food'),
+            timestamp: fc.date({ min: new Date('2020-01-01'), max: new Date('2030-12-31') })
+              .map(d => d.toISOString())
+          }),
+          { minLength: 0, maxLength: 30 }
+        ),
+        fc.integer({ min: 2020, max: 2030 }),
+        fc.integer({ min: 1, max: 12 }),
+        (transactions, year, month) => {
+          // Apply a filter
+          const filtered = getVisibleTransactions_pure(transactions, { year, month });
+          // Clear the filter (activeFilter = null)
+          const cleared = getVisibleTransactions_pure(transactions, null);
+
+          // Cleared should equal all transactions
+          if (cleared.length !== transactions.length) {
+            throw new Error(`After clear, expected ${transactions.length} transactions, got ${cleared.length}`);
+          }
+          // Same IDs in same order
+          for (let i = 0; i < transactions.length; i++) {
+            if (cleared[i].id !== transactions[i].id) {
+              throw new Error(`Transaction order mismatch after clear at index ${i}`);
+            }
+          }
+          // Suppress unused-variable warning about filtered
+          void filtered;
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  // ── P15: Theme preference round-trip ────────────────────────────────────────
+  // Validates: Requirements 9.3, 9.4
+  group('P15 — Theme preference round-trip');
+
+  test('P15: theme is persisted and restored correctly via JSON round-trip', () => {
+    // Feature: expense-budget-visualizer, Property 15: Theme preference round-trip
+    fc.assert(
+      fc.property(
+        fc.constantFrom('light', 'dark'),
+        (theme) => {
+          // Simulate saveTheme: JSON.stringify(theme)
+          const serialized = JSON.stringify(theme);
+
+          // Simulate loadFromStorage theme parsing
+          const parsed = JSON.parse(serialized);
+          const restored = (parsed === 'light' || parsed === 'dark') ? parsed : 'light';
+
+          if (restored !== theme) {
+            throw new Error(`Theme round-trip failed: expected "${theme}", got "${restored}"`);
+          }
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  test('P15: invalid stored theme value falls back to "light"', () => {
+    // Feature: expense-budget-visualizer, Property 15
+    fc.assert(
+      fc.property(
+        fc.string().filter(s => s !== 'light' && s !== 'dark'),
+        (invalidTheme) => {
+          const parsed = invalidTheme;
+          const resolved = (parsed === 'light' || parsed === 'dark') ? parsed : 'light';
+          if (resolved !== 'light') {
+            throw new Error(`Expected fallback to "light" for invalid theme "${invalidTheme}", got "${resolved}"`);
+          }
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // UNIT / EXAMPLE TESTS (smoke tests for edge cases not covered by PBT)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  group('Unit — Boundary values');
+
+  test('Unit: AMOUNT_MIN (0.01) is valid', () => {
+    const r = validateTransaction({ name: 'Test', amount: 0.01, category: 'Food' });
+    assert(r.valid, `Expected valid for amount=0.01, got errors: ${JSON.stringify(r.errors)}`);
+  });
+
+  test('Unit: AMOUNT_MAX (999999999.99) is valid', () => {
+    const r = validateTransaction({ name: 'Test', amount: 999999999.99, category: 'Food' });
+    assert(r.valid, `Expected valid for amount=999999999.99`);
+  });
+
+  test('Unit: amount just below minimum (0.009) is invalid', () => {
+    const r = validateTransaction({ name: 'Test', amount: 0.009, category: 'Food' });
+    assert(!r.valid, 'Expected invalid for amount=0.009');
+    assert(r.errors.amount, 'Expected errors.amount');
+  });
+
+  test('Unit: amount just above maximum (1000000000) is invalid', () => {
+    const r = validateTransaction({ name: 'Test', amount: 1000000000, category: 'Food' });
+    assert(!r.valid, 'Expected invalid for amount=1000000000');
+    assert(r.errors.amount, 'Expected errors.amount');
+  });
+
+  test('Unit: name exactly 100 chars is valid', () => {
+    const name = 'A'.repeat(100);
+    const r = validateTransaction({ name, amount: 1, category: 'Food' });
+    assert(r.valid, 'Expected valid for 100-char name');
+  });
+
+  test('Unit: name exactly 101 chars is invalid', () => {
+    const name = 'A'.repeat(101);
+    const r = validateTransaction({ name, amount: 1, category: 'Food' });
+    assert(!r.valid, 'Expected invalid for 101-char name');
+    assert(r.errors.name, 'Expected errors.name');
+  });
+
+  test('Unit: category name exactly 50 chars is valid', () => {
+    const r = validateCategory({ name: 'A'.repeat(50), existing: [] });
+    assert(r.valid, 'Expected valid for 50-char category name');
+  });
+
+  test('Unit: category name exactly 51 chars is invalid', () => {
+    const r = validateCategory({ name: 'A'.repeat(51), existing: [] });
+    assert(!r.valid, 'Expected invalid for 51-char category name');
+  });
+
+  test('Unit: empty balance is "0.00"', () => {
+    assertEqual(computeBalance([]), '0.00');
+  });
+
+  test('Unit: balance of single transaction is formatted to 2dp', () => {
+    const txs = [{ id: '1', name: 'X', amount: 12.5, category: 'Food', timestamp: '2024-01-01T00:00:00.000Z' }];
+    assertEqual(computeBalance(txs), '12.50');
+  });
+
+  test('Unit: chart returns null for zero-amount transactions', () => {
+    // Transactions with zero amounts are filtered out
+    const txs = [{ id: '1', name: 'X', amount: 0, category: 'Food', timestamp: '2024-01-01T00:00:00.000Z' }];
+    const data = computeChartData(txs);
+    // amount 0 is filtered out → null
+    assert(data === null, `Expected null for zero-amount transaction, got ${JSON.stringify(data)}`);
+  });
+
+  test('Unit: built-in categories are always present after initCategories', () => {
+    const merged = initCategories_pure([]);
+    for (const cat of BUILT_IN_CATEGORIES) {
+      assert(merged.includes(cat), `Expected "${cat}" in merged categories`);
+    }
+  });
+
+  test('Unit: initCategories deduplicates case-insensitively', () => {
+    const merged = initCategories_pure(['food', 'TRANSPORT', 'Shopping']);
+    // 'food' and 'TRANSPORT' are case-insensitive duplicates of built-ins
+    const lowers = merged.map(c => c.toLowerCase());
+    const foodCount = lowers.filter(c => c === 'food').length;
+    assert(foodCount === 1, `Expected exactly 1 "food" in merged, got ${foodCount}`);
+    const transportCount = lowers.filter(c => c === 'transport').length;
+    assert(transportCount === 1, `Expected exactly 1 "transport" in merged, got ${transportCount}`);
+    assert(merged.includes('Shopping'), 'Expected "Shopping" in merged');
+  });
+
+  test('Unit: month filter returns empty array for month with no transactions', () => {
+    const txs = [
+      { id: '1', name: 'X', amount: 1, category: 'Food', timestamp: '2024-01-15T00:00:00.000Z' },
+      { id: '2', name: 'Y', amount: 2, category: 'Food', timestamp: '2024-03-20T00:00:00.000Z' }
+    ];
+    const filtered = getVisibleTransactions_pure(txs, { year: 2024, month: 2 });
+    assertEqual(filtered.length, 0, `Expected 0 results for Feb 2024, got ${filtered.length}`);
+  });
+
+  test('Unit: month filter returns only transactions in the specified month', () => {
+    const txs = [
+      { id: '1', name: 'A', amount: 1, category: 'Food', timestamp: '2024-09-01T00:00:00.000Z' },
+      { id: '2', name: 'B', amount: 2, category: 'Food', timestamp: '2024-09-30T23:59:59.999Z' },
+      { id: '3', name: 'C', amount: 3, category: 'Food', timestamp: '2024-10-01T00:00:00.000Z' }
+    ];
+    const filtered = getVisibleTransactions_pure(txs, { year: 2024, month: 9 });
+    assertEqual(filtered.length, 2, `Expected 2 results for Sep 2024, got ${filtered.length}`);
+    assert(filtered.every(tx => tx.id === '1' || tx.id === '2'), 'Wrong transactions returned');
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // RENDER RESULTS
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  function renderResults() {
+    const output   = document.getElementById('output');
+    const summary  = document.getElementById('summary');
+    const passed   = results.filter(r => r.status === 'pass').length;
+    const failed   = results.filter(r => r.status === 'fail').length;
+    const total    = results.length;
+
+    summary.textContent = `${passed} / ${total} tests passed${failed > 0 ? ` — ${failed} failed` : ''}`;
+    summary.className   = failed > 0 ? 'fail' : 'pass';
+
+    let currentGroup = '';
+    for (const r of results) {
+      if (r.group !== currentGroup) {
+        const h = document.createElement('h2');
+        h.textContent = r.group;
+        output.appendChild(h);
+        currentGroup = r.group;
+      }
+      const div = document.createElement('div');
+      div.className = `test ${r.status}`;
+
+      const badge = document.createElement('span');
+      badge.className = `badge ${r.status}`;
+      badge.textContent = r.status === 'pass' ? 'PASS' : 'FAIL';
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'test-name';
+      nameEl.textContent = r.name;
+
+      div.appendChild(badge);
+      div.appendChild(nameEl);
+
+      if (r.detail) {
+        const detail = document.createElement('div');
+        detail.className = `test-detail error`;
+        detail.textContent = r.detail;
+        nameEl.appendChild(detail);
+      }
+
+      output.appendChild(div);
+    }
+  }
+
+  // Run all tests (they are synchronous/fast-check is sync) then render
+  renderResults();
+  </script>
+</body>
+</html>

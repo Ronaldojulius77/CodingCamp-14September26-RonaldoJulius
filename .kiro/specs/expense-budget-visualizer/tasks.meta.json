@@ -1,0 +1,351 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Scaffold project files and HTML skeleton": [
+      {
+        "executionId": "0dee0821-700e-424b-a293-6d1a3511caa5",
+        "chatSessionId": "sess_6d0abb7a-c1c7-427b-8236-cbed60680645",
+        "timestamp": 1789700415819
+      }
+    ],
+    "2.1 Write Section 1 (Constants & Config) in `app.js`": [
+      {
+        "executionId": "b14d01be-bf07-4909-9498-bf1c632492ed",
+        "chatSessionId": "sess_a6f2caf6-90b9-4635-8ae1-2be972a3f9e4",
+        "timestamp": 1789700478277
+      },
+      {
+        "executionId": "b14d01be-bf07-4909-9498-bf1c632492ed",
+        "chatSessionId": "sess_a6f2caf6-90b9-4635-8ae1-2be972a3f9e4",
+        "timestamp": 1789701112066
+      }
+    ],
+    "2.2 Write Section 2 (State) in `app.js`": [
+      {
+        "executionId": "b14d01be-bf07-4909-9498-bf1c632492ed",
+        "chatSessionId": "sess_a6f2caf6-90b9-4635-8ae1-2be972a3f9e4",
+        "timestamp": 1789700484623
+      },
+      {
+        "executionId": "b14d01be-bf07-4909-9498-bf1c632492ed",
+        "chatSessionId": "sess_a6f2caf6-90b9-4635-8ae1-2be972a3f9e4",
+        "timestamp": 1789701118849
+      }
+    ],
+    "2.3 Write all CSS custom properties and base styles in `style.css`": [
+      {
+        "executionId": "b14d01be-bf07-4909-9498-bf1c632492ed",
+        "chatSessionId": "sess_a6f2caf6-90b9-4635-8ae1-2be972a3f9e4",
+        "timestamp": 1789700491218
+      },
+      {
+        "executionId": "b14d01be-bf07-4909-9498-bf1c632492ed",
+        "chatSessionId": "sess_a6f2caf6-90b9-4635-8ae1-2be972a3f9e4",
+        "timestamp": 1789701125451
+      }
+    ],
+    "2. Implement constants, state, and CSS custom properties": [
+      {
+        "executionId": "b14d01be-bf07-4909-9498-bf1c632492ed",
+        "chatSessionId": "sess_a6f2caf6-90b9-4635-8ae1-2be972a3f9e4",
+        "timestamp": 1789701125594
+      }
+    ],
+    "3.1 Write `loadFromStorage()` in `app.js`": [
+      {
+        "executionId": "163ee6f5-071e-4a08-95d8-44519584f8a4",
+        "chatSessionId": "sess_26c6d727-8e73-4a25-8031-2bfc36c2566c",
+        "timestamp": 1789701175882
+      },
+      {
+        "executionId": "163ee6f5-071e-4a08-95d8-44519584f8a4",
+        "chatSessionId": "sess_26c6d727-8e73-4a25-8031-2bfc36c2566c",
+        "timestamp": 1789701584906
+      }
+    ],
+    "3.2 Write `saveTransactions()`, `saveCategories()`, and `saveTheme()` in `app.js`": [
+      {
+        "executionId": "163ee6f5-071e-4a08-95d8-44519584f8a4",
+        "chatSessionId": "sess_26c6d727-8e73-4a25-8031-2bfc36c2566c",
+        "timestamp": 1789701176333
+      },
+      {
+        "executionId": "163ee6f5-071e-4a08-95d8-44519584f8a4",
+        "chatSessionId": "sess_26c6d727-8e73-4a25-8031-2bfc36c2566c",
+        "timestamp": 1789701591034
+      }
+    ],
+    "3. Implement localStorage layer (Section 3)": [
+      {
+        "executionId": "163ee6f5-071e-4a08-95d8-44519584f8a4",
+        "chatSessionId": "sess_26c6d727-8e73-4a25-8031-2bfc36c2566c",
+        "timestamp": 1789701591247
+      }
+    ],
+    "4.1 Write `validateTransaction({ name, amount, category })` in `app.js`": [
+      {
+        "executionId": "ebecfe2c-1b6f-418d-b799-78e335637042",
+        "chatSessionId": "sess_bc636a2d-cd5f-466d-b758-9cc6297d7a0f",
+        "timestamp": 1789701644929
+      },
+      {
+        "executionId": "ebecfe2c-1b6f-418d-b799-78e335637042",
+        "chatSessionId": "sess_bc636a2d-cd5f-466d-b758-9cc6297d7a0f",
+        "timestamp": 1789701728711
+      }
+    ],
+    "4.2 Write `validateCategory({ name, existing })` in `app.js`": [
+      {
+        "executionId": "ebecfe2c-1b6f-418d-b799-78e335637042",
+        "chatSessionId": "sess_bc636a2d-cd5f-466d-b758-9cc6297d7a0f",
+        "timestamp": 1789701651229
+      },
+      {
+        "executionId": "ebecfe2c-1b6f-418d-b799-78e335637042",
+        "chatSessionId": "sess_bc636a2d-cd5f-466d-b758-9cc6297d7a0f",
+        "timestamp": 1789701734708
+      }
+    ],
+    "4. Implement the Validator (Section 4)": [
+      {
+        "executionId": "ebecfe2c-1b6f-418d-b799-78e335637042",
+        "chatSessionId": "sess_bc636a2d-cd5f-466d-b758-9cc6297d7a0f",
+        "timestamp": 1789701734855
+      }
+    ],
+    "5.1 Write `addTransaction(name, amount, category)` in `app.js`": [
+      {
+        "executionId": "04c061eb-0b30-4b6d-b6ed-a771dfbe70e0",
+        "chatSessionId": "sess_daae29f5-4ecc-42aa-8a27-10dff2216036",
+        "timestamp": 1789701781695
+      },
+      {
+        "executionId": "04c061eb-0b30-4b6d-b6ed-a771dfbe70e0",
+        "chatSessionId": "sess_daae29f5-4ecc-42aa-8a27-10dff2216036",
+        "timestamp": 1789701860901
+      }
+    ],
+    "5.3 Write `deleteTransaction(id)` in `app.js`": [
+      {
+        "executionId": "04c061eb-0b30-4b6d-b6ed-a771dfbe70e0",
+        "chatSessionId": "sess_daae29f5-4ecc-42aa-8a27-10dff2216036",
+        "timestamp": 1789701788593
+      },
+      {
+        "executionId": "04c061eb-0b30-4b6d-b6ed-a771dfbe70e0",
+        "chatSessionId": "sess_daae29f5-4ecc-42aa-8a27-10dff2216036",
+        "timestamp": 1789701867037
+      }
+    ],
+    "5. Implement transaction operations (Section 5)": [
+      {
+        "executionId": "04c061eb-0b30-4b6d-b6ed-a771dfbe70e0",
+        "chatSessionId": "sess_daae29f5-4ecc-42aa-8a27-10dff2216036",
+        "timestamp": 1789701867277
+      }
+    ],
+    "6.1 Write `initCategories()` in `app.js`": [
+      {
+        "executionId": "f184fe76-5179-4165-8ebe-35b24034c4ef",
+        "chatSessionId": "sess_454e9c66-f69b-406f-b130-6dfd058f2ad0",
+        "timestamp": 1789701914451
+      },
+      {
+        "executionId": "f184fe76-5179-4165-8ebe-35b24034c4ef",
+        "chatSessionId": "sess_454e9c66-f69b-406f-b130-6dfd058f2ad0",
+        "timestamp": 1789702003871
+      }
+    ],
+    "6.2 Write `addCategory(name)` in `app.js`": [
+      {
+        "executionId": "f184fe76-5179-4165-8ebe-35b24034c4ef",
+        "chatSessionId": "sess_454e9c66-f69b-406f-b130-6dfd058f2ad0",
+        "timestamp": 1789701920520
+      },
+      {
+        "executionId": "f184fe76-5179-4165-8ebe-35b24034c4ef",
+        "chatSessionId": "sess_454e9c66-f69b-406f-b130-6dfd058f2ad0",
+        "timestamp": 1789702010868
+      }
+    ],
+    "6. Implement category operations (Section 6)": [
+      {
+        "executionId": "f184fe76-5179-4165-8ebe-35b24034c4ef",
+        "chatSessionId": "sess_454e9c66-f69b-406f-b130-6dfd058f2ad0",
+        "timestamp": 1789702011018
+      }
+    ],
+    "7.1 Write `getVisibleTransactions()`, `setMonthFilter(year, month)`, and `clearMonthFilter()` in `app.js`": [
+      {
+        "executionId": "0c668cc2-e118-478c-82f1-87be61770f83",
+        "chatSessionId": "sess_ce8c9547-7fe1-4a55-a884-f4abd07c93d4",
+        "timestamp": 1789702056367
+      },
+      {
+        "executionId": "0c668cc2-e118-478c-82f1-87be61770f83",
+        "chatSessionId": "sess_ce8c9547-7fe1-4a55-a884-f4abd07c93d4",
+        "timestamp": 1789702106917
+      }
+    ],
+    "7. Implement filter state (Section 7)": [
+      {
+        "executionId": "0c668cc2-e118-478c-82f1-87be61770f83",
+        "chatSessionId": "sess_ce8c9547-7fe1-4a55-a884-f4abd07c93d4",
+        "timestamp": 1789702107087
+      }
+    ],
+    "8.1 Write `renderBalance(transactions)` in `app.js`": [
+      {
+        "executionId": "37e5a2a0-f29d-4e1b-ae35-8636221af3a3",
+        "chatSessionId": "sess_11847158-d0c7-4467-b39f-155d70e928cb",
+        "timestamp": 1789702155551
+      },
+      {
+        "executionId": "37e5a2a0-f29d-4e1b-ae35-8636221af3a3",
+        "chatSessionId": "sess_11847158-d0c7-4467-b39f-155d70e928cb",
+        "timestamp": 1789702392613
+      }
+    ],
+    "8.3 Write `renderTransactionList(transactions)` in `app.js`": [
+      {
+        "executionId": "37e5a2a0-f29d-4e1b-ae35-8636221af3a3",
+        "chatSessionId": "sess_11847158-d0c7-4467-b39f-155d70e928cb",
+        "timestamp": 1789702162021
+      },
+      {
+        "executionId": "37e5a2a0-f29d-4e1b-ae35-8636221af3a3",
+        "chatSessionId": "sess_11847158-d0c7-4467-b39f-155d70e928cb",
+        "timestamp": 1789702399295
+      }
+    ],
+    "8.6 Write `renderChart(transactions)` in `app.js`": [
+      {
+        "executionId": "37e5a2a0-f29d-4e1b-ae35-8636221af3a3",
+        "chatSessionId": "sess_11847158-d0c7-4467-b39f-155d70e928cb",
+        "timestamp": 1789702168486
+      },
+      {
+        "executionId": "37e5a2a0-f29d-4e1b-ae35-8636221af3a3",
+        "chatSessionId": "sess_11847158-d0c7-4467-b39f-155d70e928cb",
+        "timestamp": 1789702405618
+      }
+    ],
+    "8.10 Write `renderCategoryDropdown()` in `app.js`": [
+      {
+        "executionId": "37e5a2a0-f29d-4e1b-ae35-8636221af3a3",
+        "chatSessionId": "sess_11847158-d0c7-4467-b39f-155d70e928cb",
+        "timestamp": 1789702174443
+      },
+      {
+        "executionId": "37e5a2a0-f29d-4e1b-ae35-8636221af3a3",
+        "chatSessionId": "sess_11847158-d0c7-4467-b39f-155d70e928cb",
+        "timestamp": 1789702414905
+      }
+    ],
+    "8. Implement render functions (Sections 8–11)": [
+      {
+        "executionId": "37e5a2a0-f29d-4e1b-ae35-8636221af3a3",
+        "chatSessionId": "sess_11847158-d0c7-4467-b39f-155d70e928cb",
+        "timestamp": 1789702415303
+      }
+    ],
+    "9. Checkpoint — core logic complete": [
+      {
+        "executionId": "6ae7e476-d7db-47c1-b75d-78a6d1401562",
+        "chatSessionId": "sess_755140e7-6d6b-40b2-8581-c30c59bdcd32",
+        "timestamp": 1789702472042
+      },
+      {
+        "executionId": "6ae7e476-d7db-47c1-b75d-78a6d1401562",
+        "chatSessionId": "sess_755140e7-6d6b-40b2-8581-c30c59bdcd32",
+        "timestamp": 1789703130212
+      }
+    ],
+    "10.1 Write `applyTheme(theme)` and `toggleTheme()` in `app.js`": [
+      {
+        "executionId": "5e7844da-a203-4364-bfeb-146408c6b60b",
+        "chatSessionId": "sess_53990e22-f8c9-4c64-a2d5-bbb74f75cc3b",
+        "timestamp": 1789703194756
+      },
+      {
+        "executionId": "5e7844da-a203-4364-bfeb-146408c6b60b",
+        "chatSessionId": "sess_53990e22-f8c9-4c64-a2d5-bbb74f75cc3b",
+        "timestamp": 1789703261248
+      }
+    ],
+    "10.3 Write `showToast(message, type)` in `app.js`": [
+      {
+        "executionId": "5e7844da-a203-4364-bfeb-146408c6b60b",
+        "chatSessionId": "sess_53990e22-f8c9-4c64-a2d5-bbb74f75cc3b",
+        "timestamp": 1789703201819
+      },
+      {
+        "executionId": "5e7844da-a203-4364-bfeb-146408c6b60b",
+        "chatSessionId": "sess_53990e22-f8c9-4c64-a2d5-bbb74f75cc3b",
+        "timestamp": 1789703269067
+      }
+    ],
+    "10. Implement theme (Section 12) and toast system": [
+      {
+        "executionId": "5e7844da-a203-4364-bfeb-146408c6b60b",
+        "chatSessionId": "sess_53990e22-f8c9-4c64-a2d5-bbb74f75cc3b",
+        "timestamp": 1789703269246
+      }
+    ],
+    "11.1 Write all event handler functions in `app.js`": [
+      {
+        "executionId": "b3a9f324-09d1-486c-bd73-d84bf805cc2c",
+        "chatSessionId": "sess_f1116470-1c3c-4a98-b20c-da5eb405ecb3",
+        "timestamp": 1789703336678
+      },
+      {
+        "executionId": "b3a9f324-09d1-486c-bd73-d84bf805cc2c",
+        "chatSessionId": "sess_f1116470-1c3c-4a98-b20c-da5eb405ecb3",
+        "timestamp": 1789704171245
+      }
+    ],
+    "11.2 Write `bindEventHandlers()` and `init()` in `app.js`": [
+      {
+        "executionId": "b3a9f324-09d1-486c-bd73-d84bf805cc2c",
+        "chatSessionId": "sess_f1116470-1c3c-4a98-b20c-da5eb405ecb3",
+        "timestamp": 1789703343851
+      },
+      {
+        "executionId": "b3a9f324-09d1-486c-bd73-d84bf805cc2c",
+        "chatSessionId": "sess_f1116470-1c3c-4a98-b20c-da5eb405ecb3",
+        "timestamp": 1789704177773
+      }
+    ],
+    "11.3 Wire the month-filter min/max selector range": [
+      {
+        "executionId": "b3a9f324-09d1-486c-bd73-d84bf805cc2c",
+        "chatSessionId": "sess_f1116470-1c3c-4a98-b20c-da5eb405ecb3",
+        "timestamp": 1789703350563
+      },
+      {
+        "executionId": "b3a9f324-09d1-486c-bd73-d84bf805cc2c",
+        "chatSessionId": "sess_f1116470-1c3c-4a98-b20c-da5eb405ecb3",
+        "timestamp": 1789704184561
+      }
+    ],
+    "11. Implement event handlers and initialisation (Sections 13–14)": [
+      {
+        "executionId": "b3a9f324-09d1-486c-bd73-d84bf805cc2c",
+        "chatSessionId": "sess_f1116470-1c3c-4a98-b20c-da5eb405ecb3",
+        "timestamp": 1789704184803
+      }
+    ],
+    "12. Final checkpoint — full integration": [
+      {
+        "executionId": "daf231c5-ec3c-4432-93aa-d87549dbeda3",
+        "chatSessionId": "sess_c6be57c7-7b55-439b-9e9a-1508c132f2ad",
+        "timestamp": 1789704219880
+      },
+      {
+        "executionId": "daf231c5-ec3c-4432-93aa-d87549dbeda3",
+        "chatSessionId": "sess_c6be57c7-7b55-439b-9e9a-1508c132f2ad",
+        "timestamp": 1789705464836
+      }
+    ]
+  }
+}
